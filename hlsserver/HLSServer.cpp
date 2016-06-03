@@ -3,15 +3,13 @@
 
 #include "stdafx.h"
 #include "resource.h"
-#include "LeLinkHLSServer_i.h"
-
-#include "ProxyUserClient.h"
-//#pragma comment(lib, "ProxyUserClient.lib")
-#pragma comment(lib, "LelinkProxyUser.lib")
-#pragma comment(lib, "mp2tmux.lib")
+#pragma comment(lib, "libmp2tmux.lib")
+#pragma comment(lib, "Dbghelp.lib")
 
 #include "NetworkTCP.h"
-#include "UserSessions.h"
+//#include "UserSessions.h"
+#include "SimpleLogger.h"
+#include "Streaming.h"
 
 #include "json/json.h"
 #pragma comment(lib, "json_mtdx32.lib")
@@ -20,68 +18,13 @@
 
 #include "Configure.h"
 
-class CLeLinkHLSServerModule : public ATL::CAtlServiceModuleT< CLeLinkHLSServerModule, IDS_SERVICENAME >
-	{
-public :
-	DECLARE_LIBID(LIBID_LeLinkHLSServerLib)
-	DECLARE_REGISTRY_APPID_RESOURCEID(IDR_LELINKHLSSERVER, "{6B22D22D-71FA-4001-8082-2D7B0EE4F9CB}")
-		HRESULT InitializeSecurity() throw()
-	{
-		// TODO : Call CoInitializeSecurity and provide the appropriate security settings for your service
-		// Suggested - PKT Level Authentication, 
-		// Impersonation Level of RPC_C_IMP_LEVEL_IDENTIFY 
-		// and an appropiate Non NULL Security Descriptor.
+using namespace lelink;
 
-		return S_OK;
-	}
-	};
+static int OnRequest(SOCKET socket, void* sessions){
+	CSimpleLogger::GetLogger()->Log("Net stream source in!\n");
 
-CLeLinkHLSServerModule _AtlModule;
-
-static int OnRequest(SOCKET sock, char* data, unsigned short size, void* sessions){
-	if(size <= 0){
-		return -1;
-	}
-	
-	CUserSessions *Sessions = (CUserSessions *)sessions;
-
-	std::string &req = std::string(data);
-	std::string::size_type ipos = req.find_first_of(':');
-	std::string method = req.substr(0, ipos);
-	std::string json = req.substr(ipos + 1);
-
-	//parse data into json request
-	Json::Reader reader;
-	Json::Value mRoot;
-	if(!reader.parse(json, mRoot)){
-		CResponser resp(sock);
-		resp.Response(std::string("1000"), std::string("Invalid JSON object in request"));
-		return -2;
-	}
-
-	CUserSession *session = NULL;
-	if(method != "login"){
-		if(mRoot["access_token"].isNull()){
-			CResponser resp(sock);
-			resp.Response(std::string("1001"), std::string("Forbidden, missing assess token"));
-			return -21;
-		}else{
-			Sessions->Lock();
-			session = (*Sessions)[mRoot["access_token"].asString()];
-			if(!session){
-				CResponser resp(sock);
-				resp.Response(std::string("1002"), std::string("Forbidden, session is not exists"));
-				Sessions->Unlock();
-				return -22;
-			}
-			Sessions->Unlock();
-		}
-	}else{	//login need a session !
-		std::string username = mRoot["Username"].asString();
-		session = Sessions->CreateSession(username);
-	}
-
-	Sessions->AddTask(CSessionTask::New(sock, method, json, session->AccessToken()));
+	CStreaming *pStreaming = new CStreaming(socket);
+	pStreaming->Start();
 
 	return 0;
 }
@@ -130,11 +73,8 @@ int main()
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	CUserSessions *pSessions = CUserSessions::GetInstance();
-	pSessions->Work();
-
 	CNetworkTCP network(20008);
-	network.Open(OnRequest, pSessions);
+	network.Open(OnRequest, NULL);
 
 	network.Close();
 

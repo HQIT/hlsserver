@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmp2tmux", "mp2tmux\mp2tmux.vcxproj", "{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hlsserver", "hlsserver\hlsserver.vcxproj", "{72667025-4320-4C31-9268-DEAD7BB4EE4B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmp2tmux", "..\mp2tmux\mp2tmux.vcxproj", "{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,6 +13,12 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Debug|Win32.Build.0 = Debug|Win32
+		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Debug|x64.ActiveCfg = Debug|Win32
+		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Release|Win32.ActiveCfg = Release|Win32
+		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Release|Win32.Build.0 = Release|Win32
+		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Release|x64.ActiveCfg = Release|Win32
 		{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}.Debug|Win32.ActiveCfg = Debug|Win32
 		{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}.Debug|Win32.Build.0 = Debug|Win32
 		{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}.Debug|x64.ActiveCfg = Debug|x64
@@ -21,12 +27,6 @@ Global
 		{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}.Release|Win32.Build.0 = Release|Win32
 		{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}.Release|x64.ActiveCfg = Release|x64
 		{82299962-E3C9-4BF1-A5D6-2DA80FA9DF8F}.Release|x64.Build.0 = Release|x64
-		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Debug|Win32.ActiveCfg = Debug|Win32
-		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Debug|Win32.Build.0 = Debug|Win32
-		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Debug|x64.ActiveCfg = Debug|Win32
-		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Release|Win32.ActiveCfg = Release|Win32
-		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Release|Win32.Build.0 = Release|Win32
-		{72667025-4320-4C31-9268-DEAD7BB4EE4B}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

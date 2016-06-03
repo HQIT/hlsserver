@@ -9,7 +9,7 @@
 class CNetworkTCP
 {
 public:
-	typedef int (*CallbackOnRequest)(SOCKET sock, char* data, unsigned short size, void*);
+	typedef int (*CallbackOnRequest)(SOCKET sock, void*);
 
 	CNetworkTCP(unsigned short port);
 	virtual ~CNetworkTCP(void);

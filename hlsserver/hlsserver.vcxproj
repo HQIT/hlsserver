@@ -52,7 +52,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../mp2tmux;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\mp2tmux;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -75,7 +75,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)/lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Message>
@@ -128,7 +128,6 @@
     <ClCompile Include="HistoryMedia.cpp" />
     <ClCompile Include="HistoryPlaylist.cpp" />
     <ClCompile Include="HLSServer.cpp" />
-    <ClCompile Include="hlsserver_i.c" />
     <ClCompile Include="Media.cpp" />
     <ClCompile Include="NetworkTCP.cpp" />
     <ClCompile Include="PES.cpp" />
@@ -138,8 +137,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Streaming.cpp" />
-    <ClCompile Include="UserSession.cpp" />
-    <ClCompile Include="UserSessions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CBasePlaylist.h" />
@@ -148,17 +145,15 @@
     <ClInclude Include="ESDataType.h" />
     <ClInclude Include="HistoryMedia.h" />
     <ClInclude Include="HistoryPlaylist.h" />
-    <ClInclude Include="hlsserver_i.h" />
     <ClInclude Include="Media.h" />
     <ClInclude Include="NetworkTCP.h" />
     <ClInclude Include="PES.h" />
-    <ClInclude Include="ProxyUserClient.h" />
+    <ClInclude Include="ProxySource.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SimpleLogger.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Streaming.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="UserSessions.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="hlsserver.rc" />
@@ -166,9 +161,6 @@
   <ItemGroup>
     <None Include="hlsserver.rgs" />
     <None Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Midl Include="hlsserver.idl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

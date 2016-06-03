@@ -48,15 +48,7 @@ CNetworkTCP::LoopBody(){
 	char recvBuf[1024] = {0};
 	while(mLiving){
 		SOCKET sock = accept(mSocketLocal, (SOCKADDR *)&addrClient, &len);
-
-		memset(recvBuf, 0, sizeof(recvBuf));
-		int rc = recv(sock, recvBuf, sizeof(recvBuf), 0);
-
-		if(rc > 0 && mOnRequest){
-			mOnRequest(sock, recvBuf, rc, mCallbackHandler);
-		}
-
-		//closesocket(sock);
+		mOnRequest(sock, mCallbackHandler);
 	}
 }
 

@@ -22,13 +22,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UserSessions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="NetworkTCP.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UserSession.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CBasePlaylist.cpp">
@@ -55,9 +49,6 @@
     <ClCompile Include="Streaming.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hlsserver_i.c">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="HLSServer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -70,12 +61,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ProxyUserClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UserSessions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="NetworkTCP.h">
@@ -111,8 +96,8 @@
     <ClInclude Include="Streaming.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsserver_i.h">
-      <Filter>Generated Files</Filter>
+    <ClInclude Include="ProxySource.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -125,10 +110,5 @@
     <None Include="hlsserver.rgs">
       <Filter>Resource Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Midl Include="hlsserver.idl">
-      <Filter>Source Files</Filter>
-    </Midl>
   </ItemGroup>
 </Project>

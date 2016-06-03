@@ -7,16 +7,17 @@
 #include "Streaming.h"
 #include "PES.h"
 #include "Configure.h"
-#include "UserSessions.h"
+//#include "UserSessions.h"
+#include "ProxySource.h"
 
 #include <fstream>
 
 using lelink::CStreaming;
 
 //CStreaming::CStreaming(std::string srcId, CUserSession *session, StreamingType st /* = ST_REALTIME */)
-CStreaming::CStreaming(std::string srcId, void *proxy, StreamingType st /* = ST_REALTIME */)
-	: mSourceId(srcId), mStreamingType(st), 
-	mpProxy(proxy), 
+CStreaming::CStreaming(SOCKET socket, StreamingType st /* = ST_REALTIME */)
+	: mpSource(new CProxySource(socket)),/*mSourceId(srcId), */mStreamingType(st), 
+	///mpProxy(proxy), 
 	mpPlaylist(NULL),
 	mUsing(0),
 	mMuxer(NULL), mStreamVideo(NULL), mStreamAudio(NULL), mProgram(NULL),
@@ -59,7 +60,7 @@ CStreaming::~CStreaming(){
 	//}
 
 	if(this->mStreamingType == ST_REALTIME){
-		delete (ProxyDevice *)mpProxy;
+		//delete (ProxyDevice *)mpProxy;
 	}
 
 	if(mMuxer){
@@ -75,7 +76,7 @@ CStreaming::~CStreaming(){
 	ErasePlaylist();
 	RemoveDirectoryA(this->StreamingAbsolutePath().c_str());
 }
-
+#if 0
 ProxyUserClient *CStreaming::UserProxy(){
 	if(this->mStreamingType != ST_HISTORY)
 		return NULL;
@@ -95,7 +96,7 @@ ProxyDevice *CStreaming::DeviceProxy(){
 
 	return (ProxyDevice *)(this->mpProxy);
 }
-
+#endif
 int CStreaming::realPacketsDeliverer(const unsigned char* data, const unsigned long size, void* streaming){
 	CStreaming *thiz = (CStreaming *)streaming;
 
@@ -216,12 +217,12 @@ unsigned long CStreaming::Streaming(){
 			//	ret = -2;
 				//ret = DeviceProxy()->RecvData((char *)mpFramesBuffer, -1, size, &count);
 			//}else
-				ret = DeviceProxy()->RecvData((char *)mpFramesBuffer, MAX_FRAME_BUFFER_SIZE, size, &count);
+				ret = Source()->RecvData((char *)mpFramesBuffer, MAX_FRAME_BUFFER_SIZE, size, &count);
 		}else{
 			//if((only_4_debug--) == 0)
 			//	ret = -2;
 			//else
-				ret = UserProxy()->RecvData((char *)mpFramesBuffer, MAX_FRAME_BUFFER_SIZE, size, &count);
+				ret = Source()->RecvData((char *)mpFramesBuffer, MAX_FRAME_BUFFER_SIZE, size, &count);
 		}
 
 		//uplink stream server in trap
@@ -252,8 +253,9 @@ unsigned long CStreaming::Streaming(){
 
 		unsigned pos = 0;
 		for(int i = 0; i < count; i++){
-			TLVSTREAMINFO* stream = (TLVSTREAMINFO*)(mpFramesBuffer + pos);
+			///TLVSTREAMINFO* stream = (TLVSTREAMINFO*)(mpFramesBuffer + pos);
 			do{
+#if 0
 				if(strcmp("LELINKLE", stream->cpSynHead) != 0){
 					break;//continue;
 				}
@@ -262,26 +264,15 @@ unsigned long CStreaming::Streaming(){
 					//befor_i_cnt += 1;
 					break;
 				}
-
+#endif
 				//printf("st: %d , mills: %d \n", stream->dwTimeTag, stream->dwMillisTag);
 
-				if (stream->udwFrameType == 1){	//I
+				if (true /*stream->udwFrameType == 1*/){	//I
 					if(!first_key_frame_found){
 						first_key_frame_found = true;
 						//lelink::CSimpleLogger::GetLogger()->Log("[INFO]FIRST I FRAME REACH, START WRITE TS CLIPS");
 						//printf(" !!! %d frames befor first I \n", befor_i_cnt);
 					}
-
-					/*CLIP end - 2013.02.05 关闭代码, clip结束也返回-2表示!
-					if(stream->udwBuffSize == 0){
-						this->mUsing -= 1;
-
-						//stream end
-						mpPlaylist->SetEnd();
-						FlushPlaylist();
-
-						break;	//break the for loop
-					}*/
 
 					//if mPlaylist is ready, flush it to web dir
 					if(mpPlaylist->Ready()){
@@ -304,15 +295,15 @@ unsigned long CStreaming::Streaming(){
 
 					mpPlaylist->LatestMedia()->GOP() += 1;
 
-				}else if (stream->udwFrameType == 2){	//P
+				}/*else if (stream->udwFrameType == 2){	//P
 					;
-				}else{
+				}*/else{
 					break;//continue;
 				}
 
 				//
-				HI_S_AVFrame *pFrame = (HI_S_AVFrame *)(stream->ucArrayBuffer + 16);	//skip HI_S_SysHeader(16 bytes)
-
+				//HI_S_AVFrame *pFrame = (HI_S_AVFrame *)(stream->ucArrayBuffer + 16);	//skip HI_S_SysHeader(16 bytes)
+#if 0
 				PES pes(stream->udwBuffSize - 32);	//equal to pFrame->u32AVFrameLen?
 				pes.Fill(stream->ucArrayBuffer + 32, ESDT_VIDEO, stream->udwFrameType == 1);
 				//pes.SetPTS(mMuxer->FrameCount() * 4000);
@@ -320,13 +311,13 @@ unsigned long CStreaming::Streaming(){
 				//printf("pFrame->u32AVFramePTS: %d(%x) \n", pFrame->u32AVFramePTS, pFrame->u32AVFramePTS);
 				pes.SetPTS(pFrame->u32AVFramePTS * 90);
 				this->mMuxer->Mux(mStreamVideo, pes.Data(), pes.Size());
-
+#endif
 				mpPlaylist->LatestMedia()->FrameCount() += 1;
 				mMuxer->FrameCount()++;
 
 			}while(false);
 
-			pos += (stream->udwBuffSize + sizeof(TLVSTREAMINFO) - 4);	//size[i];
+			///pos += (stream->udwBuffSize + sizeof(TLVSTREAMINFO) - 4);	//size[i];
 		}
 
 		Sleep(5);
