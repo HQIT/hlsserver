@@ -3,10 +3,18 @@
 #include "CBasePlaylist.h"
 #include "MP2TMuxer.h"
 #include "ProxySource.h"
-
 class CUserSession;
 
+
+struct FileWriteTask
+{
+	std::string fileName;
+	std::vector<BYTE> data;
+};
+
 namespace lelink{
+
+
 	class CStreaming{
 	public:
 		enum StreamingType{
@@ -22,7 +30,7 @@ namespace lelink{
 		HANDLE mStreamingThread;
 		bool mIsStreaming;
 		StreamingType mStreamingType;
-
+		int startTime;
 		static int realPacketsDeliverer(const unsigned char*, const unsigned long, void*);
 #if 0
 		struct TLVSTREAMINFO{
@@ -51,13 +59,16 @@ namespace lelink{
 #endif
 		CBasePlaylist *mpPlaylist;
 		static const unsigned long MAX_FRAME_BUFFER_SIZE = 1 << 21;	//2M
-		unsigned char *mpFramesBuffer;
+		unsigned char *mpFrameBuffer;
 
 		MP2TMuxer *mMuxer;	//muxer will do the program and streams cleaning
 		Program::Stream *mStreamAudio;
 		Program::Stream *mStreamVideo;
 		Program *mProgram;
 
+		std::vector<FileWriteTask*> _fileWriteTasks;
+		HANDLE _fileWriteEvent;
+		CRITICAL_SECTION _fileLock;
 		CProxySource *mpSource;		///H264ÂãÁ÷À´Ô´
 
 	private:
@@ -69,7 +80,7 @@ namespace lelink{
 	public:
 		//CStreaming(std::string srcId, ProxyUserClient *, StreamingType st = ST_REALTIME);
 		//CStreaming(std::string srcId, CUserSession *, StreamingType st = ST_REALTIME);
-		//CStreaming(std::string srcId, void *, StreamingType st = ST_REALTIME);
+		//CStreaming(std::string srcId, void *, StreamingType st = ST_REALTIME>
 		CStreaming(SOCKET socket, StreamingType st = ST_REALTIME);
 		virtual ~CStreaming();
 
@@ -80,7 +91,10 @@ namespace lelink{
 		std::string StreamingAbsolutePath();
 		std::string CurrentMediaFilename();
 
-		void Reset();
+		void Enqueue(FileWriteTask* task);
+
+		void FileWriteThread();
+		///void Reset();
 		void Start();
 		void Stop();
 

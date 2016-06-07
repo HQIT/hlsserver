@@ -30,3 +30,5 @@ Debug/
 *.sdf
 hlsserver/Release/
 ipch/
+.vs/
+*.db
