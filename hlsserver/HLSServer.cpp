@@ -5,6 +5,7 @@
 #include "resource.h"
 #pragma comment(lib, "libmp2tmux.lib")
 #pragma comment(lib, "Dbghelp.lib")
+#pragma comment(lib, "Winmm.lib")
 
 #include "NetworkTCP.h"
 //#include "UserSessions.h"
@@ -12,7 +13,7 @@
 #include "Streaming.h"
 
 #include "json/json.h"
-#pragma comment(lib, "json_mtdx32.lib")
+#pragma comment(lib, "lib_json.lib")
 
 #include <stdio.h>
 
@@ -30,7 +31,7 @@ static int OnRequest(SOCKET socket, void* sessions){
 }
 
 //
-long __stdcall __CxxUnhandledExceptionFilter(struct _EXCEPTION_POINTERS *); 
+//long __stdcall __CxxUnhandledExceptionFilter(struct _EXCEPTION_POINTERS *); 
 long __stdcall MyUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo){
 	printf( "caught ...\n" ); 
 	ExitProcess( 0 ); 
@@ -41,14 +42,14 @@ long __stdcall MyUnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo){
 int main()
 {
 	SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
-
+#if 0
 	DWORD oldProtect; 
 	VirtualProtect(__CxxUnhandledExceptionFilter, 5, PAGE_EXECUTE_READWRITE, &oldProtect); 
 	*(char*)__CxxUnhandledExceptionFilter = '\xe9';// far jmp 
 	*(unsigned int*)((char*)__CxxUnhandledExceptionFilter + 1) = 
 		(unsigned int)MyUnhandledExceptionFilter - ((unsigned int)__CxxUnhandledExceptionFilter + 5); 
 	VirtualProtect(__CxxUnhandledExceptionFilter, 5, oldProtect, &oldProtect);
-
+#endif
 	//
 	std::wstring CmdLine = GetCommandLine();	//lpCmdLine;
 	std::wstring::size_type pos = CmdLine.find(_T("/config"));
