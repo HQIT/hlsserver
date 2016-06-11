@@ -53,7 +53,7 @@ CStreaming::CStreaming(SOCKET socket, StreamingType st /* = ST_REALTIME */)
 	mStreamAudio = new Program::StreamAudio(Program::Stream::STREAMSUBTYPE_ISO_IEC_13818_3_AUDIO, 101);
 	mProgram->AddStream(mStreamVideo);
 	mProgram->AddStream(mStreamAudio);
-	mProgram->PCRPID(mStreamVideo->ElementaryPID());
+	mProgram->PCRPID(mStreamAudio->ElementaryPID());
 	mMuxer->AddProgram(mProgram);
 	mMuxer->SetPacketsDeliverer(realPacketsDeliverer, this);
 
@@ -140,6 +140,7 @@ int CStreaming::realPacketsDeliverer(const unsigned char* data, const unsigned l
 	CStreaming *thiz = (CStreaming *)streaming;
 	FileWriteTask* task = new FileWriteTask();
 	task->fileName = thiz->CurrentMediaFilename();
+
 	task->data.resize(size);
 	memcpy(&task->data[0], data, size);
 	thiz->Enqueue(task);
@@ -244,6 +245,7 @@ unsigned long CStreaming::Streaming(){
 
 	const char fan[] = {'|', '/', '-', '\\'};
 	int ifan = 0, frameIndex = 0;
+	bool iFrameFound = false;
 
 	while(this->mUsing > 0 && !mpPlaylist->End()){
 
@@ -276,6 +278,7 @@ unsigned long CStreaming::Streaming(){
 
 		do{
 			if (frameIndex == 0 && type == 1/*stream->udwFrameType == 1*/){	//I
+				iFrameFound = true;
 				//if mPlaylist is ready, flush it to web dir
 				if(mpPlaylist->Ready()){
 					FlushPlaylist();
@@ -296,10 +299,11 @@ unsigned long CStreaming::Streaming(){
 				mpPlaylist->LatestMedia()->GOP() += 1;
 			}
 
+			if (!iFrameFound) break;
+
 			if (type == 1) {		///H264 VIDEO
 				PES pes(size);
 				pes.Fill(mpFrameBuffer, ESDT_VIDEO, frameIndex == 0);
-				//pes.SetPTS(mMuxer->FrameCount() * 4000);
 				//pes.SetPTS((stream->dwTimeTag * 1000000 + stream->dwMillisTag) * 0.09 /*90000.0 / 1000000.*/);
 				pes.SetPTS((timeGetTime() - startTime) * 90);
 				this->mMuxer->Mux(mStreamVideo, pes.Data(), pes.Size());
@@ -316,7 +320,7 @@ unsigned long CStreaming::Streaming(){
 
 				PES pes(size);
 				pes.Fill(mpFrameBuffer, ESDT_AUDIO, false);
-				pes.SetPTS((200 * packageCount * 90)/*timeGetTime() * 90*/);
+				pes.SetPTS((100 * packageCount * 90));
 				packageCount += 1;
 
 				this->mMuxer->Mux(mStreamAudio, pes.Data(), pes.Size());
