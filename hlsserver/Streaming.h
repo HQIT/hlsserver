@@ -1,10 +1,10 @@
 #pragma once
 
 #include "CBasePlaylist.h"
-#include "MP2TMuxer.h"
 #include "ProxySource.h"
 class CUserSession;
 
+using namespace com::cloume::cap::streaming;
 
 struct FileWriteTask
 {
@@ -14,6 +14,25 @@ struct FileWriteTask
 
 namespace lelink{
 
+#pragma pack(push)
+#pragma pack(1)
+	///AAAAAAAA AAABBCCD EEEEFFGH IIJJKLMM
+	typedef struct MP3FrameHeader {
+		unsigned int sync : 11;                         //同步信息
+		unsigned int version : 2;                       //版本
+		unsigned int layer : 2;                         //层
+		unsigned int errorProtection : 1;               // CRC校验
+		unsigned int bitrateIndex : 4;             //位率
+		unsigned int samplingFrequency : 2;        //采样频率
+		unsigned int padding : 1;                  //帧长调节
+		unsigned int private1: 1;				//保留字
+		unsigned int mode : 2;                  //声道模式
+		unsigned int modeExtension : 2;			//扩充模式
+		unsigned int copyright : 1;             // 版权
+		unsigned int original : 1;				//原版标志
+		unsigned int emphasis : 2;				//强调模式
+	}MP3HEADER, *LPMP3HEADER;
+#pragma pack(pop)
 
 	class CStreaming{
 	public:

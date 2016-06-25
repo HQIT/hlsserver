@@ -3,6 +3,27 @@
 #include <cassert>
 #include <iostream>
 
+#if 1
+struct AudioFormatPacketData
+{
+	WORD        channels;          /* number of channels (i.e. mono, stereo...) */
+	DWORD       samplesPerSec;     /* sample rate */
+	DWORD       avgBytesPerSec;    /* for buffer estimation */
+	WORD        bitsPerSample;     /* number of bits per sample of mono data */
+	WORD        blockSize;        /* block size of data */
+};
+
+struct VideoFormatPacketData
+{
+	WORD	width;
+	WORD	height;
+	WORD	encodeType;	//1: h.264, 2: h.265
+	WORD	fps;
+	DWORD	bitrate;	//kbps
+	int		gopSize;
+};
+#endif
+
 class CProxySource{
 private:
 	SOCKET mSocket;
@@ -10,6 +31,8 @@ private:
 public:
 	CProxySource(SOCKET socket) : mSocket(socket) {}
 
+	//@version: 协议版本
+	//@return: 0-OK;其他-错误
 	int RecvData(void *pFrameBuffer, unsigned int MAX_FRAME_BUFFER_SIZE, unsigned int &frameLength, unsigned int &version, unsigned int &type){
 		///read 4 byte - frame length
 		unsigned char head[6] = { 0 };

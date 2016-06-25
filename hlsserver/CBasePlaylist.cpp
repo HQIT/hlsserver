@@ -67,6 +67,9 @@ std::string CBasePlaylist::TargetDurationLine(){
 	char line[128] = {0};
 	//int size = _snprintf(line, sizeof(line), "#EXT-X-TARGETDURATION:%d", mTargetDuration);
 	CMedia *pm = FirstMedia();
+
+	if(pm) printf("pm->Duration(): %d \n", pm->Duration());
+
 	int size = _snprintf(line, sizeof(line), "#EXT-X-TARGETDURATION:%d", pm ? pm->Duration() : 0);
 	
 	line[size] = 0;
@@ -127,6 +130,7 @@ std::string CBasePlaylist::VersionLine(){
 
 std::string CBasePlaylist::ToString(){
 	return HeaderLine() + "\n\r"
+		+ "#EXT-X-DISCONTINUITY" + "\n\r"
 		+ AllowCacheLine() + "\n\r"
 		+ VersionLine() + "\n\r"
 		+ TargetDurationLine() +"\n\r"

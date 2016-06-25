@@ -10,6 +10,7 @@
 #include "NetworkTCP.h"
 //#include "UserSessions.h"
 #include "SimpleLogger.h"
+#include "MP2TMuxer.h"
 #include "Streaming.h"
 
 #include "json/json.h"

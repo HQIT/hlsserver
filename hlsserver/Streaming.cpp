@@ -4,16 +4,19 @@
 #include "HistoryMedia.h"
 #include "HistoryPlaylist.h"
 
+#include "MP2TMuxer.h"
 #include "Streaming.h"
-#include "PES.h"
 #include "Configure.h"
 //#include "UserSessions.h"
 #include "ProxySource.h"
+#include "MutableHeaderBuffer.h"
+#include "WinTicker.h"
 
 #include <fstream>
 #include <thread>
 
 using lelink::CStreaming;
+using namespace com::cloume::cap;
 
 void FileWriteThreadEntry(CStreaming* This)
 {
@@ -21,7 +24,7 @@ void FileWriteThreadEntry(CStreaming* This)
 }
 //CStreaming::CStreaming(std::string srcId, CUserSession *session, StreamingType st /* = ST_REALTIME */)
 CStreaming::CStreaming(SOCKET socket, StreamingType st /* = ST_REALTIME */)
-	: mpSource(new CProxySource(socket)),/*mSourceId(srcId), */mStreamingType(st), 
+	: mpSource(new CProxySource(socket)),/*mSourceId(srcId), */mStreamingType(st), mSourceId("1"),
 	///mpProxy(proxy), 
 	mpPlaylist(NULL),
 	mUsing(0),
@@ -47,7 +50,8 @@ CStreaming::CStreaming(SOCKET socket, StreamingType st /* = ST_REALTIME */)
 	_fileWriteEvent = CreateEvent(0, 0, 0, 0);
 	InitializeCriticalSection(&_fileLock);
 	//initialize multiplexer
-	mMuxer = new MP2TMuxer(false, 25.);
+	mMuxer = new MP2TMuxer(true, 30.);
+	mMuxer->SetTicker(new WinTicker());
 	mProgram = new Program();
 	mStreamVideo = new Program::StreamVideo(Program::Stream::STREAMSUBTYPE_H264_VIDEO, 100);
 	mStreamAudio = new Program::StreamAudio(Program::Stream::STREAMSUBTYPE_ISO_IEC_13818_3_AUDIO, 101);
@@ -56,7 +60,6 @@ CStreaming::CStreaming(SOCKET socket, StreamingType st /* = ST_REALTIME */)
 	mProgram->PCRPID(mStreamAudio->ElementaryPID());
 	mMuxer->AddProgram(mProgram);
 	mMuxer->SetPacketsDeliverer(realPacketsDeliverer, this);
-
 
 	new std::thread(FileWriteThreadEntry, this);
 }
@@ -81,6 +84,7 @@ CStreaming::~CStreaming(){
 	ErasePlaylist();
 	RemoveDirectoryA(this->StreamingAbsolutePath().c_str());
 }
+
 #if 0
 ProxyUserClient *CStreaming::UserProxy(){
 	if(this->mStreamingType != ST_HISTORY)
@@ -144,20 +148,6 @@ int CStreaming::realPacketsDeliverer(const unsigned char* data, const unsigned l
 	task->data.resize(size);
 	memcpy(&task->data[0], data, size);
 	thiz->Enqueue(task);
-	//int from = timeGetTime();
-	/*
-	MakeSureDirectoryPathExists(thiz->CurrentMediaFilename().c_str());
-
-	std::ofstream of(thiz->CurrentMediaFilename(), std::ios::app | std::ios::out | std::ios::binary);
-	if(!of.is_open())
-		return -1;
-
-	of.write((const char *)(const void *)data , size);
-	of.flush();
-	of.close();
-	*/
-	//int diff = timeGetTime() - from;
-	//printf(" user time: %d ms\n", diff);
 
 	return 0;
 }
@@ -227,6 +217,52 @@ DWORD CStreaming::StreamingStarter(void* param){
 	return streaming->Streaming();
 }
 
+/*
+版本 00-MPEG 2.5   01-未定义     10-MPEG 2     11-MPEG 1
+层	00-未定义      01-Layer 3     10-Layer 2      11-Layer 1
+*/
+
+int calMP3DataLength(lelink::LPMP3HEADER pHeader) {
+	unsigned int base = 0, samplingFrequency = 0;
+	switch (pHeader->version)
+	{
+	case 0x2:
+	case 0x0: base = pHeader->layer == 0x3 ? 24000 : 72000;
+		break;
+	case 0x3: base = pHeader->layer == 0x3 ? 48000 : 144000;
+		break;
+	}
+
+	///FIXME: 查表获得bitrate
+	unsigned int bitrate = 320;
+
+	switch (pHeader->version)
+	{
+	case 0x3: ///version 1
+		switch (pHeader->samplingFrequency)
+		{
+		case 0x0: samplingFrequency = 44100; break;
+		case 0x1: samplingFrequency = 48000; break;
+		case 0x2: samplingFrequency = 32000; break;
+		}
+		break;
+	}
+
+	return base * bitrate / samplingFrequency + pHeader->padding;
+}
+
+/*
+mpeg1.0
+layer1 :   帧长 = (48000 * bitrate) / sampling_freq + padding
+layer2 & 3 : 帧长 = (144000 * bitrate) / sampling_freq + padding
+mpeg2.0
+layer1 : 帧长 = (24000 * bitrate) / sampling_freq + padding
+layer2 & 3 : 帧长 = (72000 * bitrate) / sampling_freq + padding
+对于MPEG-1：  00-44.1kHz    01-48kHz    10-32kHz      11-未定义
+对于MPEG-2：  00-22.05kHz   01-24kHz    10-16kHz      11-未定义
+对于MPEG-2.5： 00-11.025kHz 01-12kHz    10-8kHz       11-未定义
+*/
+
 unsigned long CStreaming::Streaming(){
 	if(mpPlaylist){
 		ErasePlaylist();
@@ -245,7 +281,7 @@ unsigned long CStreaming::Streaming(){
 
 	const char fan[] = {'|', '/', '-', '\\'};
 	int ifan = 0, frameIndex = 0;
-	bool iFrameFound = false;
+	bool iFrameFound = false, isAudioReady = false, isVideoReady = false;
 
 	while(this->mUsing > 0 && !mpPlaylist->End()){
 
@@ -272,9 +308,19 @@ unsigned long CStreaming::Streaming(){
 			continue;
 		}
 
-		if (type != 1 && type != 2) continue;
+		///必须先确定a/v format参数
+		if (!isAudioReady && type == 10) {
+			AudioFormatPacketData *pFormat = (AudioFormatPacketData *)mpFrameBuffer;
+			///pFormat->
+			isAudioReady = true;
+		}
 
-		///printf("\r %c", fan[(ifan++) % sizeof(fan)]); fflush(stdout);
+		if (!isVideoReady && type == 30) {
+			VideoFormatPacketData *pFormat = (VideoFormatPacketData *)mpFrameBuffer;
+			isVideoReady = true;
+		}
+
+		if (type != 1 && type != 2) continue;
 
 		do{
 			if (frameIndex == 0 && type == 1/*stream->udwFrameType == 1*/){	//I
@@ -292,22 +338,22 @@ unsigned long CStreaming::Streaming(){
 
 					if(mpPlaylist->LatestMedia()->GOP() == 0){
 						//deliver PAT/PMT at beginning of each GOP
-						mMuxer->DeliverPATPMT();
+						///mMuxer->DeliverPATPMT();
 					}
 				}
 
 				mpPlaylist->LatestMedia()->GOP() += 1;
+
+				printf("gop: %d \n", mpPlaylist->LatestMedia()->GOP());
 			}
 
 			if (!iFrameFound) break;
 
 			if (type == 1) {		///H264 VIDEO
-				PES pes(size);
-				pes.Fill(mpFrameBuffer, ESDT_VIDEO, frameIndex == 0);
-				//pes.SetPTS((stream->dwTimeTag * 1000000 + stream->dwMillisTag) * 0.09 /*90000.0 / 1000000.*/);
-				pes.SetPTS((timeGetTime() - startTime) * 90);
-				this->mMuxer->Mux(mStreamVideo, pes.Data(), pes.Size());
-
+				MutableHeaderBuffer buf(size);
+				buf.AppendData((const char *) mpFrameBuffer, size);
+				this->mMuxer->Mux(mStreamVideo, &buf, 33);
+				
 				mpPlaylist->LatestMedia()->FrameCount() += 1;
 				mMuxer->FrameCount()++;
 
@@ -315,17 +361,32 @@ unsigned long CStreaming::Streaming(){
 				frameIndex %= 150;		///应该从流中读取GOP大小
 			
 			} else if(type == 2) {		//MP3 AUDIO
+				int remain = size;
+				unsigned int frameLength = 0, position = 0;
+				while (remain > 0) {
+					MP3HEADER header;
+					unsigned char *bytes = mpFrameBuffer + position;
+					
+					header.sync = (bytes[0] << 3) | (bytes[1] >> 5);
+					header.version = (bytes[1] >> 3) & 0x3;
+					header.layer = (bytes[1] >> 1) & 0x3;
+					header.bitrateIndex = (bytes[2] >> 4);
+					header.samplingFrequency = (bytes[2] >> 2) & 0x3;
+					header.padding = (bytes[2] >> 1) & 0x1;
 
-				static int packageCount = 0;
+					frameLength = calMP3DataLength(&header);
 
-				PES pes(size);
-				pes.Fill(mpFrameBuffer, ESDT_AUDIO, false);
-				pes.SetPTS((100 * packageCount * 90));
-				packageCount += 1;
+					remain -= frameLength;
+					position += frameLength;
 
-				this->mMuxer->Mux(mStreamAudio, pes.Data(), pes.Size());
+					///每帧的时间固定24ms; 1152 / 48000
+					MutableHeaderBuffer buf(frameLength);
+					buf.AppendData((const char *) bytes, frameLength);
+					this->mMuxer->Mux(mStreamAudio, &buf, 24);	//26.122 == 1152 * 1000 / 44100
+				}
 			}
 
+			this->mMuxer->Deliver();
 		}while(false);
 	}
 
